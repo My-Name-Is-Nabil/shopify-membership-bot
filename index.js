@@ -26,14 +26,13 @@ client.on('messageCreate', async (message) => {
         const memberId = message.author.id;
         await guild.members.fetch();
         const member = guild.members.cache.get(memberId);
-        console.log(guild.members.cache);
         if(member.roles.cache.find(role => role.name === 'PREMIUM MEMBER')){
-            message.channel.send('You already have the role');
+            message.channel.send('Unfortunately you have already claimed your membership');
         }
         else{
             try{
                 await member.roles.add(role);
-                message.channel.send('Role has been added');
+                message.channel.send('Thank you for providing your email. Enjoy your premium access to Maverick Sports Bets!');
             }
             catch(e){
                 console.log('Problem with administations');
