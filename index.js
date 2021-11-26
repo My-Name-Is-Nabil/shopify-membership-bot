@@ -55,7 +55,7 @@ catch(e){
 
 const app = express();
 app.use(bodyParser.json());
-const port = 8080;
+const port = process.env.PORT || 8080;
 
 app.post('/', async(req, res) => {
     console.log('Request Received');
@@ -78,7 +78,7 @@ app.post('/', async(req, res) => {
     }
 });
 
-client.login("");
+client.login(process.env.TOKEN);
 app.listen(port, function () {
     console.log(`Listening on port ${port}`);
 });
