@@ -1,8 +1,51 @@
-const fs = require('fs');
 const { Client, Intents} = require('discord.js');
 const express = require('express');
 const bodyParser = require('body-parser');
+const { MongoClient } = require('mongodb');
+
 const client = new Client({ partials: ["CHANNEL"], intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.DIRECT_MESSAGES, ] });;
+const uri = process.env.URI;
+const mongoClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+const readFromDatabase = async () => {
+    try{
+        await mongoClient.connect();
+        const collection = mongoClient.db('emails').collection('emails');
+        const returnedCollection = await collection.findOne({
+            document: 'emails',
+        });
+        if(returnedCollection === null)
+            return [];
+        return returnedCollection.emails;
+    }
+    catch(err){
+        console.log(err)
+    }
+    finally{
+        mongoClient.close();
+    }
+}
+
+const writeToDataBase = async (data) => {
+    try{
+        await mongoClient.connect();
+        const collection = mongoClient.db('emails').collection('emails');
+        await collection.replaceOne({
+            document: 'emails',
+        }, {
+            document: 'emails',
+            emails: data,
+        }, {
+            upsert: true,
+        });
+    }
+    catch(err){
+        console.log(err);
+    } 
+    finally{
+        mongoClient.close();
+    }
+};
 
 client.on('ready', function () {
     console.log('Bot is ready');
@@ -11,13 +54,8 @@ client.on('ready', function () {
 client.on('messageCreate', async (message) => {
     if(message.author.bot) return;
     const sentEmail = message.content;
-    let data = await fs.promises.readFile('emails.json');
-    data = JSON.parse(data);
-    if(!data.emails){
-        message.channel.send(`Couldn't find your email`);
-        return;
-    }
-    if(data.emails.includes(sentEmail)){
+    const emails = await readFromDatabase();
+    if(emails.includes(sentEmail)){
         const guild = client.guilds.cache.get('902745903213973517')
         const role = guild.roles.cache.find(role => role.name === 'PREMIUM MEMBER');
         if(!role){
@@ -45,13 +83,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-try{
-    fs.accessSync('emails.json', fs.constants.R_OK | fs.constants.W_OK,); 
-}
-catch(e){
-    fs.writeFileSync('emails.json', '{}',);
-}
-
 const app = express();
 app.use(bodyParser.json());
 const port = process.env.PORT || 8080;
@@ -62,16 +93,11 @@ app.post('/', async(req, res) => {
     const lineItems = req.body.line_items;
     for(const item of lineItems){
         if(item.name === 'Monthly Premium Membership'){
-            let data = await fs.promises.readFile('emails.json');
-            data = JSON.parse(data);
-            if(Array.isArray(data.emails)){
-                if(!data.emails.includes(customerEmail))
-                    data.emails.push(customerEmail);
+            const emails = await readFromDatabase();
+            if(!emails.includes(customerEmail)){
+                emails.push(customerEmail);
+                writeToDataBase(emails);
             }
-            else{
-                data.emails = [customerEmail];
-            }
-            await fs.promises.writeFile('emails.json', JSON.stringify(data));
             break;
         }
     }
