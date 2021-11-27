@@ -101,6 +101,7 @@ app.post('/', async(req, res) => {
             break;
         }
     }
+    res.sendStatus(204);
 });
 
 client.login(process.env.TOKEN);
