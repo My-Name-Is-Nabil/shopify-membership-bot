@@ -55,6 +55,8 @@ client.on('messageCreate', async (message) => {
     if(message.author.bot) return;
     const sentEmail = message.content;
     const emails = await readFromDatabase();
+    if(!emails)
+        return message.channel.send('An error occured, please try again later');
     if(emails.includes(sentEmail)){
         const guild = client.guilds.cache.get('902745903213973517')
         const role = guild.roles.cache.find(role => role.name === 'PREMIUM MEMBER');
@@ -89,11 +91,15 @@ const port = process.env.PORT || 8080;
 
 app.post('/', async(req, res) => {
     console.log('Request Received');
-    const customerEmail = req.body.customer.email;
-    const lineItems = req.body.line_items;
+    const customerEmail = req.body?.customer?.email;
+    const lineItems = req.body?.line_items;
+    if(!customerEmail || !lineItems)
+        return res.sendStatus(204);
     for(const item of lineItems){
         if(item.name === 'Monthly Premium Membership'){
             const emails = await readFromDatabase();
+            if(!emails)
+                break;
             if(!emails.includes(customerEmail)){
                 emails.push(customerEmail);
                 writeToDataBase(emails);
